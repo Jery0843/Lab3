@@ -24,26 +24,13 @@ async function logUnauthorizedAccess(request: NextRequest, reason: string) {
     let country = 'unknown', region = 'unknown', city = 'unknown', isp = 'unknown';
     try {
       if (clientIP !== 'unknown' && clientIP !== 'localhost' && clientIP !== '127.0.0.1') {
-        // Try ipapi.co first (better ISP data)
-        try {
-          const response = await fetch(`https://ipapi.co/${clientIP}/json/`);
-          const data = await response.json();
-          if (data.country_name) {
-            country = data.country_name || 'unknown';
-            region = data.region || 'unknown';
-            city = data.city || 'unknown';
-            isp = data.org || 'unknown';
-          }
-        } catch (e) {
-          // Fallback to ip-api.com
-          const response = await fetch(`http://ip-api.com/json/${clientIP}?fields=status,country,regionName,city,isp,org`);
-          const data = await response.json();
-          if (data.status === 'success') {
-            country = data.country || 'unknown';
-            region = data.regionName || 'unknown';
-            city = data.city || 'unknown';
-            isp = data.isp || data.org || 'unknown';
-          }
+        const response = await fetch(`http://ip-api.com/json/${clientIP}?fields=status,country,regionName,city,isp,org`);
+        const data = await response.json();
+        if (data.status === 'success') {
+          country = data.country || 'unknown';
+          region = data.regionName || 'unknown';
+          city = data.city || 'unknown';
+          isp = data.isp || data.org || 'unknown';
         }
       }
     } catch (error) {
@@ -51,11 +38,11 @@ async function logUnauthorizedAccess(request: NextRequest, reason: string) {
     }
     
     const logStmt = await db.prepare(`
-      INSERT INTO admin_unauthorized (ip_address, user_agent, path, reason, country, region, city, isp, referer)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO admin_unauthorized (ip_address, user_agent, path, reason, country, region, city, referer)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `);
     
-    await logStmt.bind(
+    const result = await logStmt.bind(
       clientIP,
       userAgent,
       request.nextUrl.pathname,
@@ -63,9 +50,18 @@ async function logUnauthorizedAccess(request: NextRequest, reason: string) {
       country,
       region,
       city,
-      isp,
       referer
     ).run();
+    
+    // Update ISP using the inserted row ID
+    if (result.meta?.last_row_id) {
+      try {
+        const updateStmt = await db.prepare('UPDATE admin_unauthorized SET isp = ? WHERE rowid = ?');
+        await updateStmt.bind(isp, result.meta.last_row_id).run();
+      } catch (e) {
+        console.log('ISP update failed:', e);
+      }
+    }
   } catch (error) {
     console.error('Failed to log unauthorized access:', error);
   }
