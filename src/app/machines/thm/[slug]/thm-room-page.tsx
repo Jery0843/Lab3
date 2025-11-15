@@ -27,7 +27,8 @@ interface THMRoom {
   createdAt: string;
   updatedAt: string;
   url: string;
-  roomCode: string;
+  roomCode?: string;
+  room_code?: string;
   points: number;
   dateCompleted: string | null;
 }
@@ -62,15 +63,9 @@ const THMRoomPage = ({ room }: THMRoomPageProps) => {
   const [showScroll, setShowScroll] = useState(false);
   const [booting, setBooting] = useState(true);
   const [bootSequence, setBootSequence] = useState<string[]>([]);
-  const [isAdminMode, setIsAdminMode] = useState(false);
-  const [isEditingStatus, setIsEditingStatus] = useState(false);
-  const [editStatus, setEditStatus] = useState(room.status);
-  const [isEditingRoomCode, setIsEditingRoomCode] = useState(false);
-  const [editRoomCode, setEditRoomCode] = useState(room.roomCode || '');
   
   // Handle both dateCompleted (camelCase) and date_completed (snake_case) from database
   const dateCompleted = room.dateCompleted || (room as any).date_completed || '';
-  const [editDateCompleted, setEditDateCompleted] = useState(dateCompleted);
   
   // Handle tags - ensure it's an array
   const tagsArray = useMemo(() => parseTags(room.tags), [room.tags]);
@@ -111,21 +106,7 @@ const THMRoomPage = ({ room }: THMRoomPageProps) => {
     return () => timers.forEach(clearTimeout);
   }, [bootSteps, room.id]);
 
-  // Check for admin session
-  useEffect(() => {
-    const checkAdminSession = async () => {
-      try {
-        const response = await fetch('/api/admin/auth');
-        const data = await response.json();
-        setIsAdminMode(data.authenticated || false);
-      } catch (error) {
-        console.error('Error checking admin session:', error);
-        setIsAdminMode(false);
-      }
-    };
-    
-    checkAdminSession();
-  }, []);
+
 
   const scrollTop = () => {
     // Scroll main window to top
@@ -163,59 +144,7 @@ const THMRoomPage = ({ room }: THMRoomPageProps) => {
     }
   };
 
-  const handleStatusUpdate = async () => {
-    try {
-      const response = await fetch('/api/admin/thm-rooms-d1', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          ...room,
-          status: editStatus,
-          dateCompleted: editStatus === 'Completed' ? (editDateCompleted || new Date().toISOString().split('T')[0]) : null,
-        }),
-      });
 
-      if (response.ok) {
-        // Refresh the page to show updated data
-        window.location.reload();
-      } else {
-        console.error('Failed to update room status');
-      }
-    } catch (error) {
-      console.error('Error updating room status:', error);
-    }
-    setIsEditingStatus(false);
-  };
-
-  const handleRoomCodeUpdate = async () => {
-    try {
-      const response = await fetch('/api/admin/thm-rooms-d1', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          ...room,
-          roomCode: editRoomCode,
-          room_code: editRoomCode, // Include both formats for compatibility
-        }),
-      });
-
-      if (response.ok) {
-        // Refresh the page to show updated data
-        window.location.reload();
-      } else {
-        console.error('Failed to update room code');
-      }
-    } catch (error) {
-      console.error('Error updating room code:', error);
-    }
-    setIsEditingRoomCode(false);
-  };
 
   if (booting) {
     return (
@@ -295,6 +224,16 @@ const THMRoomPage = ({ room }: THMRoomPageProps) => {
                 </div>
               </div>
 
+              {/* Room Code */}
+              {(room.roomCode || room.room_code) && (
+                <div className="rounded-2xl backdrop-blur-sm bg-black/20 light:bg-white/30 border border-white/10 p-4" style={{ animation: 'panelLoad 0.9s ease-out forwards' }}>
+                  <h3 className="font-cyber text-xl text-cyber-purple mb-4">ROOM CODE</h3>
+                  <div className="bg-terminal-bg/50 border border-cyber-purple/20 p-3 rounded-lg">
+                    <div className="font-mono text-cyber-purple text-lg break-all">{room.roomCode || room.room_code}</div>
+                  </div>
+                </div>
+              )}
+
               {/* External Link */}
               {room.url && (
                 <div className="rounded-2xl backdrop-blur-sm bg-black/20 light:bg-white/30 border border-white/10 p-4" style={{ animation: 'panelLoad 1.0s ease-out forwards' }}>
@@ -368,95 +307,7 @@ const THMRoomPage = ({ room }: THMRoomPageProps) => {
 
         </div>
 
-        {/* Admin Controls */}
-        {isAdminMode && (
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }} 
-            animate={{ opacity: 1, y: 0 }} 
-            transition={{ delay: 0.8, duration: 0.5 }}
-            className="mt-8 rounded-2xl backdrop-blur-sm bg-black/20 light:bg-white/30 border border-white/10 p-6"
-          >
-            <h3 className="text-xl font-bold text-cyber-purple mb-4">ADMIN CONTROLS</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Status Control */}
-              <div>
-                <label className="block text-sm font-medium mb-2 text-cyber-purple">Status</label>
-                {isEditingStatus ? (
-                  <div className="space-y-2">
-                    <select
-                      value={editStatus}
-                      onChange={(e) => setEditStatus(e.target.value)}
-                      className="w-full bg-terminal-bg border border-cyber-purple text-cyber-purple rounded px-3 py-2"
-                    >
-                      <option value="In Progress">In Progress</option>
-                      <option value="Completed">Completed</option>
-                    </select>
-                    {editStatus === 'Completed' && (
-                      <input
-                        type="date"
-                        value={editDateCompleted}
-                        onChange={(e) => setEditDateCompleted(e.target.value)}
-                        className="w-full bg-terminal-bg border border-cyber-purple text-cyber-purple rounded px-3 py-2"
-                      />
-                    )}
-                    <div className="flex space-x-2">
-                      <button onClick={handleStatusUpdate} className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700">
-                        <FaSave className="inline mr-1" /> Save
-                      </button>
-                      <button onClick={() => setIsEditingStatus(false)} className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700">
-                        <FaTimes className="inline mr-1" /> Cancel
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex items-center space-x-2">
-                    <span className={`px-3 py-1 rounded border ${getStatusColor()}`}>{room.status}</span>
-                    <button 
-                      onClick={() => setIsEditingStatus(true)}
-                      className="text-cyber-purple hover:text-cyber-pink"
-                    >
-                      <FaEdit />
-                    </button>
-                  </div>
-                )}
-              </div>
 
-              {/* Room Code Control */}
-              <div>
-                <label className="block text-sm font-medium mb-2 text-cyber-purple">Room Code</label>
-                {isEditingRoomCode ? (
-                  <div className="space-y-2">
-                    <input
-                      type="text"
-                      value={editRoomCode}
-                      onChange={(e) => setEditRoomCode(e.target.value)}
-                      className="w-full bg-terminal-bg border border-cyber-purple text-cyber-purple rounded px-3 py-2"
-                      placeholder="Enter room code"
-                    />
-                    <div className="flex space-x-2">
-                      <button onClick={handleRoomCodeUpdate} className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700">
-                        <FaSave className="inline mr-1" /> Save
-                      </button>
-                      <button onClick={() => setIsEditingRoomCode(false)} className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700">
-                        <FaTimes className="inline mr-1" /> Cancel
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex items-center space-x-2">
-                    <span className="text-gray-300 font-mono">{room.roomCode || 'Not set'}</span>
-                    <button 
-                      onClick={() => setIsEditingRoomCode(true)}
-                      className="text-cyber-purple hover:text-cyber-pink"
-                    >
-                      <FaEdit />
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-          </motion.div>
-        )}
 
         {/* Scroll to Top Button */}
         <AnimatePresence>
