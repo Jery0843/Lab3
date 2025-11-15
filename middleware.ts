@@ -1,16 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDatabase } from './src/lib/db';
 
+// Get client IP with enhanced detection
+function getClientIP(request: NextRequest): string {
+  return request.headers.get('cf-connecting-ip') ||
+         request.headers.get('x-forwarded-for')?.split(',')[0].trim() || 
+         request.headers.get('x-real-ip') || 
+         request.headers.get('x-vercel-forwarded-for') || 
+         'unknown';
+}
+
 // Log unauthorized access attempt
 async function logUnauthorizedAccess(request: NextRequest, reason: string) {
   try {
     const db = getDatabase();
     if (!db) return;
     
-    const clientIP = request.headers.get('x-forwarded-for')?.split(',')[0].trim() || 
-                     request.headers.get('x-real-ip') || 
-                     request.headers.get('x-vercel-forwarded-for') || 
-                     'unknown';
+    const clientIP = getClientIP(request);
     const userAgent = request.headers.get('user-agent') || 'unknown';
     const referer = request.headers.get('referer') || null;
     
@@ -50,8 +56,8 @@ async function logUnauthorizedAccess(request: NextRequest, reason: string) {
   }
 }
 
-// Validate admin session token
-async function validateAdminSession(sessionToken: string): Promise<boolean> {
+// Validate admin session token with IP binding
+async function validateAdminSession(sessionToken: string, clientIP: string): Promise<boolean> {
   if (!sessionToken || sessionToken.length !== 64) {
     return false;
   }
@@ -60,9 +66,9 @@ async function validateAdminSession(sessionToken: string): Promise<boolean> {
     const db = getDatabase();
     if (!db) return false;
     
-    // Check if session exists and is valid
-    const stmt = await db.prepare('SELECT * FROM admin_sessions WHERE token = ? AND expires_at > datetime("now") AND is_active = 1');
-    const session = await stmt.bind(sessionToken).first();
+    // Check if session exists, is valid, and matches IP
+    const stmt = await db.prepare('SELECT * FROM admin_sessions WHERE token = ? AND ip_address = ? AND expires_at > datetime("now") AND is_active = 1');
+    const session = await stmt.bind(sessionToken, clientIP).first();
     
     return !!session;
   } catch (error) {
@@ -83,7 +89,9 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL('/admin/unauthorized', request.url));
     }
     
-    const isValid = await validateAdminSession(sessionToken);
+    const clientIP = getClientIP(request);
+    
+    const isValid = await validateAdminSession(sessionToken, clientIP);
     if (!isValid) {
       await logUnauthorizedAccess(request, 'invalid_session_token');
       const response = NextResponse.redirect(new URL('/admin/unauthorized', request.url));
@@ -103,7 +111,9 @@ export async function middleware(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
-    const isValid = await validateAdminSession(sessionToken);
+    const clientIP = getClientIP(request);
+    
+    const isValid = await validateAdminSession(sessionToken, clientIP);
     if (!isValid) {
       const response = NextResponse.json({ error: 'Session expired' }, { status: 401 });
       response.cookies.delete('admin_session');
