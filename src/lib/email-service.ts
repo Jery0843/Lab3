@@ -1,5 +1,6 @@
 import { NewsletterDB } from './newsletter-db';
 import { getSiteUrl } from '@/config/site';
+import { getDatabase } from './db';
 
 interface EmailData {
   to: string;
@@ -122,9 +123,14 @@ export class EmailService {
   async sendNewMachineNotification(machineName: string, machineOs: string, machineDifficulty: string): Promise<void> {
     const newsletterDB = new NewsletterDB();
     const subscribers = await newsletterDB.getAllSubscribers();
+    const members = await this.getActiveMembers();
 
-    if (subscribers.length === 0) {
-      console.log('No subscribers to notify about new machine');
+    const allEmails = [...subscribers, ...members];
+    const uniqueEmails = Array.from(new Set(allEmails.map(item => item.email)))
+      .map(email => allEmails.find(item => item.email === email)!);
+
+    if (uniqueEmails.length === 0) {
+      console.log('No subscribers or members to notify about new machine');
       return;
     }
 
@@ -179,15 +185,15 @@ export class EmailService {
       </html>
     `;
 
-    // Send to all subscribers in small batches to avoid provider limits
+    // Send to all unique emails in small batches to avoid provider limits
     const batchSize = 50;
     let totalSuccess = 0;
 
-    for (let i = 0; i < subscribers.length; i += batchSize) {
-      const batch = subscribers.slice(i, i + batchSize);
+    for (let i = 0; i < uniqueEmails.length; i += batchSize) {
+      const batch = uniqueEmails.slice(i, i + batchSize);
       try {
         const results = await Promise.allSettled(
-          batch.map(subscriber => this.sendEmail({ to: subscriber.email, subject, html }))
+          batch.map(recipient => this.sendEmail({ to: recipient.email, subject, html }))
         );
         const successful = results.filter(r => r.status === 'fulfilled' && (r as PromiseFulfilledResult<boolean>).value).length;
         totalSuccess += successful;
@@ -197,7 +203,24 @@ export class EmailService {
       }
     }
 
-    console.log(`Sent new machine notification to ${totalSuccess}/${subscribers.length} subscribers`);
+    console.log(`Sent new machine notification to ${totalSuccess}/${uniqueEmails.length} recipients (${subscribers.length} newsletter + ${members.length} members)`);
+  }
+
+  private async getActiveMembers(): Promise<Array<{email: string, name?: string}>> {
+    try {
+      const db = getDatabase();
+      if (!db) {
+        console.warn('Database not available for fetching members');
+        return [];
+      }
+
+      const prepared = await db.prepare('SELECT email, name FROM members');
+      const members = await prepared.all();
+      return members || [];
+    } catch (error) {
+      console.error('Error fetching active members:', error);
+      return [];
+    }
   }
 }
 
