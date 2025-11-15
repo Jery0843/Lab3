@@ -24,55 +24,48 @@ async function logUnauthorizedAccess(request: NextRequest, reason: string) {
     let country = 'unknown', region = 'unknown', city = 'unknown', isp = 'unknown';
     try {
       if (clientIP !== 'unknown' && clientIP !== 'localhost' && clientIP !== '127.0.0.1') {
-        const response = await fetch(`http://ip-api.com/json/${clientIP}?fields=status,country,regionName,city,isp,org`);
-        const data = await response.json();
-        if (data.status === 'success') {
-          country = data.country || 'unknown';
-          region = data.regionName || 'unknown';
-          city = data.city || 'unknown';
-          isp = data.isp || data.org || 'unknown';
+        // Try ipapi.co first (better ISP data)
+        try {
+          const response = await fetch(`https://ipapi.co/${clientIP}/json/`);
+          const data = await response.json();
+          if (data.country_name) {
+            country = data.country_name || 'unknown';
+            region = data.region || 'unknown';
+            city = data.city || 'unknown';
+            isp = data.org || 'unknown';
+          }
+        } catch (e) {
+          // Fallback to ip-api.com
+          const response = await fetch(`http://ip-api.com/json/${clientIP}?fields=status,country,regionName,city,isp,org`);
+          const data = await response.json();
+          if (data.status === 'success') {
+            country = data.country || 'unknown';
+            region = data.regionName || 'unknown';
+            city = data.city || 'unknown';
+            isp = data.isp || data.org || 'unknown';
+          }
         }
       }
     } catch (error) {
       console.error('Error getting location from IP:', error);
     }
     
-    // Try inserting with ISP column first
-    try {
-      const logStmt = await db.prepare(`
-        INSERT INTO admin_unauthorized (ip_address, user_agent, path, reason, country, region, city, isp, referer)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `);
-      
-      await logStmt.bind(
-        clientIP,
-        userAgent,
-        request.nextUrl.pathname,
-        reason,
-        country,
-        region,
-        city,
-        isp,
-        referer
-      ).run();
-    } catch (ispError) {
-      // Fallback: insert without ISP if column order is wrong
-      const logStmt = await db.prepare(`
-        INSERT INTO admin_unauthorized (ip_address, user_agent, path, reason, country, region, city, referer)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      `);
-      
-      await logStmt.bind(
-        clientIP,
-        userAgent,
-        request.nextUrl.pathname,
-        reason,
-        country,
-        region,
-        city,
-        referer
-      ).run();
-    }
+    const logStmt = await db.prepare(`
+      INSERT INTO admin_unauthorized (ip_address, user_agent, path, reason, country, region, city, isp, referer)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+    
+    await logStmt.bind(
+      clientIP,
+      userAgent,
+      request.nextUrl.pathname,
+      reason,
+      country,
+      region,
+      city,
+      isp,
+      referer
+    ).run();
   } catch (error) {
     console.error('Failed to log unauthorized access:', error);
   }
