@@ -24,13 +24,26 @@ async function logUnauthorizedAccess(request: NextRequest, reason: string) {
     let country = 'unknown', region = 'unknown', city = 'unknown', isp = 'unknown';
     try {
       if (clientIP !== 'unknown' && clientIP !== 'localhost' && clientIP !== '127.0.0.1') {
-        const response = await fetch(`http://ip-api.com/json/${clientIP}?fields=status,country,regionName,city,isp`);
-        const data = await response.json();
-        if (data.status === 'success') {
-          country = data.country || 'unknown';
-          region = data.regionName || 'unknown';
-          city = data.city || 'unknown';
-          isp = data.isp || 'unknown';
+        // Try ipapi.co first (better ISP data)
+        try {
+          const response = await fetch(`https://ipapi.co/${clientIP}/json/`);
+          const data = await response.json();
+          if (data.country_name) {
+            country = data.country_name || 'unknown';
+            region = data.region || 'unknown';
+            city = data.city || 'unknown';
+            isp = data.org || 'unknown';
+          }
+        } catch (e) {
+          // Fallback to ip-api.com
+          const response = await fetch(`http://ip-api.com/json/${clientIP}?fields=status,country,regionName,city,isp,org`);
+          const data = await response.json();
+          if (data.status === 'success') {
+            country = data.country || 'unknown';
+            region = data.regionName || 'unknown';
+            city = data.city || 'unknown';
+            isp = data.isp || data.org || 'unknown';
+          }
         }
       }
     } catch (error) {
@@ -38,8 +51,8 @@ async function logUnauthorizedAccess(request: NextRequest, reason: string) {
     }
     
     const logStmt = await db.prepare(`
-      INSERT INTO admin_unauthorized (ip_address, user_agent, path, reason, country, region, city, referer)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO admin_unauthorized (ip_address, user_agent, path, reason, country, region, city, isp, referer)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     
     await logStmt.bind(
@@ -50,6 +63,7 @@ async function logUnauthorizedAccess(request: NextRequest, reason: string) {
       country,
       region,
       city,
+      isp,
       referer
     ).run();
   } catch (error) {
@@ -91,14 +105,20 @@ export async function middleware(request: NextRequest) {
     }
     
     const clientIP = getClientIP(request);
+    console.log('🔍 Admin access attempt:', { sessionToken: sessionToken?.substring(0, 8) + '...', clientIP, pathname });
     
     const isValid = await validateAdminSession(sessionToken, clientIP);
+    console.log('🔐 Session validation result:', { isValid, clientIP });
+    
     if (!isValid) {
+      console.log('❌ Access denied - IP mismatch or invalid session');
       await logUnauthorizedAccess(request, 'invalid_session_token');
       const response = NextResponse.redirect(new URL('/admin/unauthorized', request.url));
       response.cookies.delete('admin_session');
       return response;
     }
+    
+    console.log('✅ Access granted for IP:', clientIP);
   }
   
   // Protect admin API routes (except auth and setup)
