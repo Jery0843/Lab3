@@ -69,9 +69,16 @@ export async function POST(request: NextRequest) {
     const markVerifiedStmt = await db.prepare('UPDATE otp_verification SET verified = 1 WHERE id = ?');
     await markVerifiedStmt.bind(otpRecord.id).run();
 
-    // Get member details
-    const memberStmt = await db.prepare('SELECT * FROM members WHERE email = ?');
+    // Get member details - check if active
+    const memberStmt = await db.prepare('SELECT * FROM members WHERE email = ? AND status = "active"');
     const member = await memberStmt.bind(email).first();
+
+    if (!member) {
+      return NextResponse.json(
+        { error: 'Access denied - inactive membership' },
+        { status: 403 }
+      );
+    }
 
     // Get location data
     const location = await getLocationFromIP(clientIP);
