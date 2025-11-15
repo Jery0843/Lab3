@@ -37,30 +37,41 @@ async function logUnauthorizedAccess(request: NextRequest, reason: string) {
       console.error('Error getting location from IP:', error);
     }
     
-    const logStmt = await db.prepare(`
-      INSERT INTO admin_unauthorized (ip_address, user_agent, path, reason, country, region, city, referer)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-    
-    const result = await logStmt.bind(
-      clientIP,
-      userAgent,
-      request.nextUrl.pathname,
-      reason,
-      country,
-      region,
-      city,
-      referer
-    ).run();
-    
-    // Update ISP using the inserted row ID
-    if (result.meta?.last_row_id) {
-      try {
-        const updateStmt = await db.prepare('UPDATE admin_unauthorized SET isp = ? WHERE rowid = ?');
-        await updateStmt.bind(isp, result.meta.last_row_id).run();
-      } catch (e) {
-        console.log('ISP update failed:', e);
-      }
+    // Try inserting with ISP column first
+    try {
+      const logStmt = await db.prepare(`
+        INSERT INTO admin_unauthorized (ip_address, user_agent, path, reason, country, region, city, isp, referer)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `);
+      
+      await logStmt.bind(
+        clientIP,
+        userAgent,
+        request.nextUrl.pathname,
+        reason,
+        country,
+        region,
+        city,
+        isp,
+        referer
+      ).run();
+    } catch (ispError) {
+      // Fallback: insert without ISP if column order is wrong
+      const logStmt = await db.prepare(`
+        INSERT INTO admin_unauthorized (ip_address, user_agent, path, reason, country, region, city, referer)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `);
+      
+      await logStmt.bind(
+        clientIP,
+        userAgent,
+        request.nextUrl.pathname,
+        reason,
+        country,
+        region,
+        city,
+        referer
+      ).run();
     }
   } catch (error) {
     console.error('Failed to log unauthorized access:', error);
