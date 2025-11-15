@@ -220,33 +220,865 @@ export default function AdminDashboardClient() {
           </button>
         </div>
 
+        {/* HTB Tab */}
+        {activeTab === 'htb' && (
+          <div>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold text-cyber-green">HTB Machines</h2>
+              <div className="flex space-x-4">
+                <button
+                  onClick={fetchData}
+                  className="bg-cyber-blue text-white px-6 py-3 rounded-lg hover:bg-blue-600 transition-colors font-bold border-2 border-cyber-blue"
+                >
+                  <FaSync className="inline mr-2" />
+                  Refresh
+                </button>
+                <button
+                  onClick={() => setShowHtbModal(true)}
+                  className="bg-cyber-green text-black px-6 py-3 rounded-lg hover:bg-green-600 transition-colors font-bold border-2 border-cyber-green"
+                >
+                  <FaPlus className="inline mr-2" />
+                  Add Machine
+                </button>
+              </div>
+            </div>
+
+            <div className="grid gap-6">
+              {htbMachines.map((machine) => (
+                <div key={machine.id} className="rounded-2xl backdrop-blur-sm bg-black/40 light:bg-white/60 border border-cyber-green/30 p-6 hover:border-cyber-green transition-all">
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <h3 className="text-2xl font-bold text-cyber-green mb-2">{machine.name}</h3>
+                      <div className="flex items-center space-x-4 mb-3">
+                        <span className="px-3 py-1 bg-cyber-green/20 text-cyber-green rounded-full text-sm font-semibold">{machine.os}</span>
+                        <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
+                          machine.difficulty === 'Easy' ? 'bg-green-500/20 text-green-400' :
+                          machine.difficulty === 'Medium' ? 'bg-yellow-500/20 text-yellow-400' :
+                          machine.difficulty === 'Hard' ? 'bg-red-500/20 text-red-400' :
+                          'bg-purple-500/20 text-purple-400'
+                        }`}>{machine.difficulty}</span>
+                        <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
+                          machine.status === 'Completed' ? 'bg-green-500/20 text-green-400 border border-green-400' :
+                          'bg-yellow-500/20 text-yellow-400 border border-yellow-400'
+                        }`}>{machine.status}</span>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {machine.tags.map((tag, index) => (
+                          <span key={index} className="px-3 py-1 bg-cyber-green/10 text-cyber-green text-sm rounded border border-cyber-green/30">
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="flex space-x-3 ml-4">
+                      <button
+                        onClick={() => window.open(`/machines/htb/${machine.id}`, '_blank')}
+                        className="p-3 bg-cyber-blue/20 text-cyber-blue hover:bg-cyber-blue hover:text-white rounded-lg transition-all border border-cyber-blue/30"
+                        title="View"
+                      >
+                        <FaEye />
+                      </button>
+                      <button
+                        onClick={() => {
+                          setSelectedHtbMachine(machine);
+                          setShowHtbModal(true);
+                        }}
+                        className="p-3 bg-cyber-green/20 text-cyber-green hover:bg-cyber-green hover:text-black rounded-lg transition-all border border-cyber-green/30"
+                        title="Edit"
+                      >
+                        <FaEdit />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(machine.id, 'htb')}
+                        className="p-3 bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white rounded-lg transition-all border border-red-500/30"
+                        title="Delete"
+                      >
+                        <FaTrash />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* THM Tab */}
+        {activeTab === 'thm' && (
+          <div>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold text-cyber-purple">THM Rooms</h2>
+              <div className="flex space-x-4">
+                <button
+                  onClick={fetchData}
+                  className="bg-cyber-blue text-white px-6 py-3 rounded-lg hover:bg-blue-600 transition-colors font-bold border-2 border-cyber-blue"
+                >
+                  <FaSync className="inline mr-2" />
+                  Refresh
+                </button>
+                <button
+                  onClick={() => setShowThmModal(true)}
+                  className="bg-cyber-purple text-white px-6 py-3 rounded-lg hover:bg-purple-600 transition-colors font-bold border-2 border-cyber-purple"
+                >
+                  <FaPlus className="inline mr-2" />
+                  Add Room
+                </button>
+              </div>
+            </div>
+
+            <div className="grid gap-6">
+              {thmRooms.map((room) => (
+                <div key={room.id} className="rounded-2xl backdrop-blur-sm bg-black/40 light:bg-white/60 border border-cyber-purple/30 p-6 hover:border-cyber-purple transition-all">
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <h3 className="text-2xl font-bold text-cyber-purple mb-2">{room.title}</h3>
+                      <div className="flex items-center space-x-4 mb-3">
+                        <span className="px-3 py-1 bg-cyber-purple/20 text-cyber-purple rounded-full text-sm font-semibold">THM</span>
+                        <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
+                          room.difficulty === 'Easy' ? 'bg-green-500/20 text-green-400' :
+                          room.difficulty === 'Medium' ? 'bg-yellow-500/20 text-yellow-400' :
+                          'bg-red-500/20 text-red-400'
+                        }`}>{room.difficulty}</span>
+                        <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
+                          room.status === 'Completed' ? 'bg-green-500/20 text-green-400 border border-green-400' :
+                          'bg-yellow-500/20 text-yellow-400 border border-yellow-400'
+                        }`}>{room.status}</span>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {room.tags.map((tag, index) => (
+                          <span key={index} className="px-3 py-1 bg-cyber-purple/10 text-cyber-purple text-sm rounded border border-cyber-purple/30">
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="flex space-x-3 ml-4">
+                      <button
+                        onClick={() => window.open(`/machines/thm/${room.slug}`, '_blank')}
+                        className="p-3 bg-cyber-blue/20 text-cyber-blue hover:bg-cyber-blue hover:text-white rounded-lg transition-all border border-cyber-blue/30"
+                        title="View"
+                      >
+                        <FaEye />
+                      </button>
+                      <button
+                        onClick={() => {
+                          setSelectedThmRoom(room);
+                          setShowThmModal(true);
+                        }}
+                        className="p-3 bg-cyber-purple/20 text-cyber-purple hover:bg-cyber-purple hover:text-white rounded-lg transition-all border border-cyber-purple/30"
+                        title="Edit"
+                      >
+                        <FaEdit />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(room.id, 'thm')}
+                        className="p-3 bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white rounded-lg transition-all border border-red-500/30"
+                        title="Delete"
+                      >
+                        <FaTrash />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Stats Tab */}
+        {activeTab === 'stats' && (
+          <div>
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold text-cyber-blue mb-4">Stats & Settings Management</h2>
+              <p className="text-gray-300 light:text-gray-600">Update HTB and THM statistics, manage system settings</p>
+            </div>
+
+            <div className="grid gap-6">
+              {/* HTB Stats Update */}
+              <div className="rounded-2xl backdrop-blur-sm bg-black/40 light:bg-white/60 border border-cyber-green/30 p-6">
+                <h3 className="text-xl font-bold text-cyber-green mb-4">HTB Statistics Update</h3>
+                <div className="flex space-x-4">
+                  <button
+                    onClick={() => setShowHtbStatsModal(true)}
+                    className="bg-cyber-green text-black px-6 py-3 rounded-lg hover:bg-green-600 transition-colors font-bold border-2 border-cyber-green"
+                  >
+                    <FaChartBar className="inline mr-2" />
+                    Update HTB Stats
+                  </button>
+                  <button
+                    onClick={() => window.open('/api/admin/htb-stats-d1', '_blank')}
+                    className="bg-cyber-blue text-white px-6 py-3 rounded-lg hover:bg-blue-600 transition-colors font-bold border-2 border-cyber-blue"
+                  >
+                    <FaEye className="inline mr-2" />
+                    View HTB Stats API
+                  </button>
+                </div>
+              </div>
+
+              {/* THM Stats Update */}
+              <div className="rounded-2xl backdrop-blur-sm bg-black/40 light:bg-white/60 border border-cyber-purple/30 p-6">
+                <h3 className="text-xl font-bold text-cyber-purple mb-4">THM Statistics Update</h3>
+                <div className="flex space-x-4">
+                  <button
+                    onClick={() => setShowThmStatsModal(true)}
+                    className="bg-cyber-purple text-white px-6 py-3 rounded-lg hover:bg-purple-600 transition-colors font-bold border-2 border-cyber-purple"
+                  >
+                    <FaChartBar className="inline mr-2" />
+                    Update THM Stats
+                  </button>
+                  <button
+                    onClick={() => window.open('/api/admin/thm-stats-d1', '_blank')}
+                    className="bg-cyber-blue text-white px-6 py-3 rounded-lg hover:bg-blue-600 transition-colors font-bold border-2 border-cyber-blue"
+                  >
+                    <FaEye className="inline mr-2" />
+                    View THM Stats API
+                  </button>
+                </div>
+              </div>
+
+              {/* System Management */}
+              <div className="rounded-2xl backdrop-blur-sm bg-black/40 light:bg-white/60 border border-cyber-blue/30 p-6">
+                <h3 className="text-xl font-bold text-cyber-blue mb-4">System Management</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <button
+                    onClick={() => window.open('/admin/simple', '_blank')}
+                    className="bg-cyber-blue text-white px-6 py-3 rounded-lg hover:bg-blue-600 transition-colors font-bold border-2 border-cyber-blue"
+                  >
+                    <FaCog className="inline mr-2" />
+                    Simple Admin Panel
+                  </button>
+                  <button
+                    onClick={() => window.open('/api/admin/logs', '_blank')}
+                    className="bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition-colors font-bold border-2 border-gray-600"
+                  >
+                    <FaEye className="inline mr-2" />
+                    View System Logs
+                  </button>
+                  <button
+                    onClick={() => window.open('/api/admin/users', '_blank')}
+                    className="bg-yellow-600 text-white px-6 py-3 rounded-lg hover:bg-yellow-700 transition-colors font-bold border-2 border-yellow-600"
+                  >
+                    <FaUser className="inline mr-2" />
+                    Manage Users
+                  </button>
+                  <button
+                    onClick={() => window.open('/api/admin/setup-db', '_blank')}
+                    className="bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 transition-colors font-bold border-2 border-red-600"
+                  >
+                    <FaServer className="inline mr-2" />
+                    Database Setup
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Security Tab */}
         {activeTab === 'security' && (
           <AdminSecurityDashboard />
         )}
 
-        {/* Other tabs content would go here - HTB, THM, Stats */}
-        {activeTab === 'htb' && (
-          <div>
-            <h2 className="text-2xl font-bold text-cyber-green mb-4">HTB Machines</h2>
-            <p className="text-gray-400">HTB machines management interface</p>
-          </div>
+        {/* HTB Modal */}
+        {showHtbModal && (
+          <HTBMachineModal
+            machine={selectedHtbMachine}
+            onSave={handleHtbSubmit}
+            onClose={() => {
+              setShowHtbModal(false);
+              setSelectedHtbMachine(null);
+            }}
+          />
         )}
 
-        {activeTab === 'thm' && (
-          <div>
-            <h2 className="text-2xl font-bold text-cyber-purple mb-4">THM Rooms</h2>
-            <p className="text-gray-400">THM rooms management interface</p>
-          </div>
+        {/* THM Modal */}
+        {showThmModal && (
+          <THMRoomModal
+            room={selectedThmRoom}
+            onSave={handleThmSubmit}
+            onClose={() => {
+              setShowThmModal(false);
+              setSelectedThmRoom(null);
+            }}
+          />
         )}
 
-        {activeTab === 'stats' && (
-          <div>
-            <h2 className="text-2xl font-bold text-cyber-blue mb-4">Stats & Settings</h2>
-            <p className="text-gray-400">Statistics and settings management</p>
-          </div>
+        {/* HTB Stats Modal */}
+        {showHtbStatsModal && (
+          <StatsModal
+            type="HTB"
+            onClose={() => setShowHtbStatsModal(false)}
+          />
+        )}
+
+        {/* THM Stats Modal */}
+        {showThmStatsModal && (
+          <StatsModal
+            type="THM"
+            onClose={() => setShowThmStatsModal(false)}
+          />
         )}
       </div>
     </Layout>
+  );
+}
+
+// Stats Modal Component
+function StatsModal({
+  type,
+  onClose,
+}: {
+  type: 'HTB' | 'THM';
+  onClose: () => void;
+}) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<string>('');
+  const [error, setError] = useState<string>('');
+  const [currentStats, setCurrentStats] = useState<any>(null);
+  const [formData, setFormData] = useState<any>({});
+
+  useEffect(() => {
+    fetchCurrentStats();
+  }, []);
+
+  const fetchCurrentStats = async () => {
+    try {
+      const endpoint = type === 'HTB' ? '/api/admin/htb-stats-d1' : '/api/admin/thm-stats-d1';
+      const response = await fetch(endpoint);
+      const data = await response.json();
+      
+      if (response.ok) {
+        setCurrentStats(data);
+        setFormData(data);
+      }
+    } catch (error) {
+      console.error('Error fetching current stats:', error);
+    }
+  };
+
+  const handleUpdate = async () => {
+    setLoading(true);
+    setError('');
+    setResult('');
+    
+    try {
+      const endpoint = type === 'HTB' ? '/api/admin/htb-stats-d1' : '/api/admin/thm-stats-d1';
+      
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify(formData)
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok) {
+        setResult(`✅ ${type} stats updated successfully!`);
+        setCurrentStats(data);
+      } else {
+        setError(`❌ Failed to update ${type} stats: ${data.error || 'Unknown error'}`);
+      }
+    } catch (error) {
+      setError(`❌ Network error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+      <div className="bg-black/90 border border-white/20 rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className={`text-2xl font-bold ${type === 'HTB' ? 'text-cyber-green' : 'text-cyber-purple'}`}>
+            Update {type} Statistics
+          </h2>
+          <button onClick={onClose} className="text-white hover:text-gray-300">
+            <FaTimes />
+          </button>
+        </div>
+
+        <div className="space-y-4">
+          {type === 'HTB' && formData && (
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-2 text-cyber-green">Machines Pwned</label>
+                <input
+                  type="number"
+                  value={formData.machines_pwned || formData.machinesPwned || 0}
+                  onChange={(e) => setFormData({...formData, machines_pwned: parseInt(e.target.value) || 0})}
+                  className="w-full bg-terminal-bg border border-cyber-green/50 p-3 rounded text-white"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2 text-cyber-green">Global Ranking</label>
+                <input
+                  type="number"
+                  value={formData.global_ranking || formData.globalRanking || 0}
+                  onChange={(e) => setFormData({...formData, global_ranking: parseInt(e.target.value) || 0})}
+                  className="w-full bg-terminal-bg border border-cyber-green/50 p-3 rounded text-white"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2 text-cyber-green">Final Score</label>
+                <input
+                  type="number"
+                  value={formData.final_score || formData.finalScore || 0}
+                  onChange={(e) => setFormData({...formData, final_score: parseInt(e.target.value) || 0})}
+                  className="w-full bg-terminal-bg border border-cyber-green/50 p-3 rounded text-white"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2 text-cyber-green">HTB Rank</label>
+                <input
+                  type="text"
+                  value={formData.htb_rank || formData.htbRank || ''}
+                  onChange={(e) => setFormData({...formData, htb_rank: e.target.value})}
+                  className="w-full bg-terminal-bg border border-cyber-green/50 p-3 rounded text-white"
+                />
+              </div>
+            </div>
+          )}
+
+          {type === 'THM' && formData && (
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-2 text-cyber-purple">THM Rank</label>
+                <input
+                  type="text"
+                  value={formData.thm_rank || ''}
+                  onChange={(e) => setFormData({...formData, thm_rank: e.target.value})}
+                  className="w-full bg-terminal-bg border border-cyber-purple/50 p-3 rounded text-white"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2 text-cyber-purple">Global Ranking</label>
+                <input
+                  type="number"
+                  value={formData.global_ranking || 0}
+                  onChange={(e) => setFormData({...formData, global_ranking: parseInt(e.target.value) || 0})}
+                  className="w-full bg-terminal-bg border border-cyber-purple/50 p-3 rounded text-white"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2 text-cyber-purple">Rooms Completed</label>
+                <input
+                  type="number"
+                  value={formData.rooms_completed || 0}
+                  onChange={(e) => setFormData({...formData, rooms_completed: parseInt(e.target.value) || 0})}
+                  className="w-full bg-terminal-bg border border-cyber-purple/50 p-3 rounded text-white"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2 text-cyber-purple">Total Points</label>
+                <input
+                  type="number"
+                  value={formData.total_points || 0}
+                  onChange={(e) => setFormData({...formData, total_points: parseInt(e.target.value) || 0})}
+                  className="w-full bg-terminal-bg border border-cyber-purple/50 p-3 rounded text-white"
+                />
+              </div>
+            </div>
+          )}
+
+          <button
+            onClick={handleUpdate}
+            disabled={loading}
+            className={`w-full ${type === 'HTB' ? 'bg-cyber-green text-black' : 'bg-cyber-purple text-white'} px-6 py-3 rounded-lg font-bold transition-colors disabled:opacity-50`}
+          >
+            {loading ? (
+              <>
+                <FaSync className="inline mr-2 animate-spin" />
+                <span className={type === 'HTB' ? 'text-black' : 'text-white'}>Updating {type} Stats...</span>
+              </>
+            ) : (
+              <>
+                <FaSave className="inline mr-2" />
+                <span className={type === 'HTB' ? 'text-black' : 'text-white'}>Save {type} Statistics</span>
+              </>
+            )}
+          </button>
+
+          {error && (
+            <div className="bg-red-900/20 border border-red-500/50 text-red-400 p-4 rounded-lg">
+              <pre className="whitespace-pre-wrap text-sm">{error}</pre>
+            </div>
+          )}
+
+          {result && (
+            <div className="bg-green-900/20 border border-green-500/50 text-green-400 p-4 rounded-lg">
+              <pre className="whitespace-pre-wrap text-sm">{result}</pre>
+            </div>
+          )}
+        </div>
+
+        <div className="flex justify-end mt-6">
+          <button
+            onClick={onClose}
+            className="px-6 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// HTB Machine Modal Component
+function HTBMachineModal({
+  machine,
+  onSave,
+  onClose,
+}: {
+  machine: Machine | null;
+  onSave: (data: Omit<Machine, 'id'>) => void;
+  onClose: () => void;
+}) {
+  const [formData, setFormData] = useState({
+    name: machine?.name || '',
+    os: machine?.os || 'Linux',
+    difficulty: machine?.difficulty || 'Easy',
+    status: machine?.status || 'In Progress',
+    isActive: (machine as any)?.isActive ?? true,
+    summary: (machine as any)?.summary || '',
+    dateCompleted: machine?.dateCompleted || '',
+    tags: machine?.tags || [],
+    writeup: machine?.writeup || '',
+  });
+  const [tagInput, setTagInput] = useState('');
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const submitData = {
+      ...formData,
+      id: machine?.id || formData.name.toLowerCase().replace(/\s+/g, '-'),
+      dateCompleted: formData.status === 'Completed' ? formData.dateCompleted : null,
+      summary: formData.summary || null,
+    };
+    onSave(submitData);
+  };
+
+  const addTag = () => {
+    if (tagInput.trim() && !formData.tags.includes(tagInput.trim())) {
+      setFormData({ ...formData, tags: [...formData.tags, tagInput.trim()] });
+      setTagInput('');
+    }
+  };
+
+  const removeTag = (index: number) => {
+    setFormData({ ...formData, tags: formData.tags.filter((_, i) => i !== index) });
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+      <div className="bg-black/90 border border-white/20 rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-2xl font-bold text-cyber-green">
+            {machine ? 'Edit HTB Machine' : 'Add HTB Machine'}
+          </h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-white">
+            <FaTimes />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-2 text-cyber-green">Name</label>
+              <input
+                type="text"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                className="w-full bg-terminal-bg border border-cyber-green/50 p-3 rounded text-white"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2 text-cyber-green">OS</label>
+              <select
+                value={formData.os}
+                onChange={(e) => setFormData({ ...formData, os: e.target.value })}
+                className="w-full bg-terminal-bg border border-cyber-green/50 p-3 rounded text-white"
+              >
+                <option value="Linux">Linux</option>
+                <option value="Windows">Windows</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-2 text-cyber-green">Difficulty</label>
+              <select
+                value={formData.difficulty}
+                onChange={(e) => setFormData({ ...formData, difficulty: e.target.value })}
+                className="w-full bg-terminal-bg border border-cyber-green/50 p-3 rounded text-white"
+              >
+                <option value="Easy">Easy</option>
+                <option value="Medium">Medium</option>
+                <option value="Hard">Hard</option>
+                <option value="Insane">Insane</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2 text-cyber-green">Status</label>
+              <select
+                value={formData.status}
+                onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                className="w-full bg-terminal-bg border border-cyber-green/50 p-3 rounded text-white"
+              >
+                <option value="In Progress">In Progress</option>
+                <option value="Completed">Completed</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2 text-cyber-green">Active Status</label>
+            <div className="flex items-center gap-3">
+              <input
+                type="checkbox"
+                checked={formData.isActive}
+                onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+                className="h-4 w-4 accent-cyber-green"
+              />
+              <span className="text-sm text-gray-300">Block writeup while machine is active</span>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2 text-cyber-green">Summary (SEO)</label>
+            <textarea
+              value={formData.summary}
+              onChange={(e) => setFormData({ ...formData, summary: e.target.value })}
+              className="w-full bg-terminal-bg border border-cyber-green/50 p-3 rounded text-white h-20"
+              placeholder="Short, non-spoiler overview for search engines (1-2 sentences)"
+              maxLength={500}
+            />
+          </div>
+
+          {formData.status === 'Completed' && (
+            <div>
+              <label className="block text-sm font-medium mb-2 text-cyber-green">Date Completed</label>
+              <input
+                type="date"
+                value={formData.dateCompleted}
+                onChange={(e) => setFormData({ ...formData, dateCompleted: e.target.value })}
+                className="w-full bg-terminal-bg border border-cyber-green/50 p-3 rounded text-white"
+              />
+            </div>
+          )}
+
+          <div>
+            <label className="block text-sm font-medium mb-2 text-cyber-green">Tags</label>
+            <div className="flex gap-2 mb-2">
+              <input
+                type="text"
+                value={tagInput}
+                onChange={(e) => setTagInput(e.target.value)}
+                className="flex-1 bg-terminal-bg border border-cyber-green/50 p-3 rounded text-white"
+                placeholder="Add a tag"
+                onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
+              />
+              <button type="button" onClick={addTag} className="bg-cyber-green text-black px-4 py-2 rounded">
+                Add
+              </button>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {formData.tags.map((tag, index) => (
+                <span key={index} className="bg-cyber-green/20 text-cyber-green px-2 py-1 rounded text-sm flex items-center gap-1">
+                  {tag}
+                  <button type="button" onClick={() => removeTag(index)} className="text-red-400">×</button>
+                </span>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2 text-cyber-green">Writeup (Markdown)</label>
+            <textarea
+              value={formData.writeup}
+              onChange={(e) => setFormData({ ...formData, writeup: e.target.value })}
+              className="w-full bg-terminal-bg border border-cyber-green/50 p-3 rounded text-white h-40 font-mono"
+              placeholder="# Enumeration\n\n## Exploitation\n\n## Privilege Escalation..."
+            />
+          </div>
+
+          <div className="flex justify-end space-x-4 pt-4">
+            <button type="button" onClick={onClose} className="px-6 py-2 bg-gray-600 text-white rounded">
+              Cancel
+            </button>
+            <button type="submit" className="px-6 py-2 bg-cyber-green text-black rounded">
+              <FaSave className="inline mr-2" />
+              {machine ? 'Update' : 'Create'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// THM Room Modal Component
+function THMRoomModal({
+  room,
+  onSave,
+  onClose,
+}: {
+  room: THMRoom | null;
+  onSave: (data: Omit<THMRoom, 'id'>) => void;
+  onClose: () => void;
+}) {
+  const [formData, setFormData] = useState({
+    title: room?.title || '',
+    slug: room?.slug || '',
+    difficulty: room?.difficulty || 'Easy',
+    status: room?.status || 'In Progress',
+    roomCode: room?.roomCode || '',
+    dateCompleted: room?.dateCompleted || '',
+    tags: room?.tags || [],
+    writeup: room?.writeup || '',
+  });
+  const [tagInput, setTagInput] = useState('');
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const slug = formData.slug || formData.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    onSave({ ...formData, slug });
+  };
+
+  const addTag = () => {
+    if (tagInput.trim() && !formData.tags.includes(tagInput.trim())) {
+      setFormData({ ...formData, tags: [...formData.tags, tagInput.trim()] });
+      setTagInput('');
+    }
+  };
+
+  const removeTag = (index: number) => {
+    setFormData({ ...formData, tags: formData.tags.filter((_, i) => i !== index) });
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+      <div className="bg-black/90 border border-white/20 rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-2xl font-bold text-cyber-purple">
+            {room ? 'Edit THM Room' : 'Add THM Room'}
+          </h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-white">
+            <FaTimes />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-2 text-cyber-purple">Title</label>
+              <input
+                type="text"
+                value={formData.title}
+                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                className="w-full bg-terminal-bg border border-cyber-purple/50 p-3 rounded text-white"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2 text-cyber-purple">Room Code</label>
+              <input
+                type="text"
+                value={formData.roomCode}
+                onChange={(e) => setFormData({ ...formData, roomCode: e.target.value })}
+                className="w-full bg-terminal-bg border border-cyber-purple/50 p-3 rounded text-white"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-2 text-cyber-purple">Difficulty</label>
+              <select
+                value={formData.difficulty}
+                onChange={(e) => setFormData({ ...formData, difficulty: e.target.value })}
+                className="w-full bg-terminal-bg border border-cyber-purple/50 p-3 rounded text-white"
+              >
+                <option value="Easy">Easy</option>
+                <option value="Medium">Medium</option>
+                <option value="Hard">Hard</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2 text-cyber-purple">Status</label>
+              <select
+                value={formData.status}
+                onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                className="w-full bg-terminal-bg border border-cyber-purple/50 p-3 rounded text-white"
+              >
+                <option value="In Progress">In Progress</option>
+                <option value="Completed">Completed</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2 text-cyber-purple">Date Completed</label>
+            <input
+              type="date"
+              value={formData.dateCompleted}
+              onChange={(e) => setFormData({ ...formData, dateCompleted: e.target.value })}
+              className="w-full bg-terminal-bg border border-cyber-purple/50 p-3 rounded text-white"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2 text-cyber-purple">Tags</label>
+            <div className="flex gap-2 mb-2">
+              <input
+                type="text"
+                value={tagInput}
+                onChange={(e) => setTagInput(e.target.value)}
+                className="flex-1 bg-terminal-bg border border-cyber-purple/50 p-3 rounded text-white"
+                placeholder="Add a tag"
+                onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
+              />
+              <button type="button" onClick={addTag} className="bg-cyber-purple text-white px-4 py-2 rounded">
+                Add
+              </button>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {formData.tags.map((tag, index) => (
+                <span key={index} className="bg-cyber-purple/20 text-cyber-purple px-2 py-1 rounded text-sm flex items-center gap-1">
+                  {tag}
+                  <button type="button" onClick={() => removeTag(index)} className="text-red-400">×</button>
+                </span>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2 text-cyber-purple">Writeup</label>
+            <textarea
+              value={formData.writeup}
+              onChange={(e) => setFormData({ ...formData, writeup: e.target.value })}
+              className="w-full bg-terminal-bg border border-cyber-purple/50 p-3 rounded text-white h-32"
+              placeholder="Writeup content (Markdown supported)"
+            />
+          </div>
+
+          <div className="flex justify-end space-x-4 pt-4">
+            <button type="button" onClick={onClose} className="px-6 py-2 bg-gray-600 text-white rounded">
+              Cancel
+            </button>
+            <button type="submit" className="px-6 py-2 bg-cyber-purple text-white rounded">
+              <FaSave className="inline mr-2" />
+              {room ? 'Update' : 'Create'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   );
 }
