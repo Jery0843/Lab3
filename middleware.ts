@@ -20,16 +20,17 @@ async function logUnauthorizedAccess(request: NextRequest, reason: string) {
     const userAgent = request.headers.get('user-agent') || 'unknown';
     const referer = request.headers.get('referer') || null;
     
-    // Get location data from IP using external API (same as OTP verification)
-    let country = 'unknown', region = 'unknown', city = 'unknown';
+    // Get location and ISP data from IP using external API
+    let country = 'unknown', region = 'unknown', city = 'unknown', isp = 'unknown';
     try {
       if (clientIP !== 'unknown' && clientIP !== 'localhost' && clientIP !== '127.0.0.1') {
-        const response = await fetch(`http://ip-api.com/json/${clientIP}`);
+        const response = await fetch(`http://ip-api.com/json/${clientIP}?fields=status,country,regionName,city,isp`);
         const data = await response.json();
         if (data.status === 'success') {
           country = data.country || 'unknown';
           region = data.regionName || 'unknown';
           city = data.city || 'unknown';
+          isp = data.isp || 'unknown';
         }
       }
     } catch (error) {
