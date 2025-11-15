@@ -19,10 +19,21 @@ export async function POST(request: NextRequest) {
     const userAgent = request.headers.get('user-agent') || 'unknown';
     const referer = request.headers.get('referer') || null;
     
-    // Get location data from IP (using Cloudflare headers if available)
-    const country = request.headers.get('cf-ipcountry') || 'unknown';
-    const region = request.headers.get('cf-region') || 'unknown';
-    const city = request.headers.get('cf-ipcity') || 'unknown';
+    // Get location data from IP using external API (same as OTP verification)
+    let country = 'unknown', region = 'unknown', city = 'unknown';
+    try {
+      if (clientIP !== 'unknown' && clientIP !== 'localhost' && clientIP !== '127.0.0.1') {
+        const response = await fetch(`http://ip-api.com/json/${clientIP}`);
+        const data = await response.json();
+        if (data.status === 'success') {
+          country = data.country || 'unknown';
+          region = data.regionName || 'unknown';
+          city = data.city || 'unknown';
+        }
+      }
+    } catch (error) {
+      console.error('Error getting location from IP:', error);
+    }
     
     const logStmt = await db.prepare(`
       INSERT INTO admin_unauthorized (ip_address, user_agent, path, reason, country, region, city, referer)
