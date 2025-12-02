@@ -711,3 +711,16 @@ CREATE TABLE IF NOT EXISTS writeup_popup (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Email quota tracking table
+CREATE TABLE IF NOT EXISTS email_quota (
+    service TEXT NOT NULL,
+    date TEXT NOT NULL,
+    count INTEGER DEFAULT 0,
+    PRIMARY KEY (service, date)
+);
+
+CREATE INDEX IF NOT EXISTS idx_email_quota_date ON email_quota(date);
+
+-- Cleanup old quota records (optional - run manually or via cron)
+-- DELETE FROM email_quota WHERE date < date('now', '-7 days');
