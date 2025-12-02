@@ -10,19 +10,10 @@ interface EmailData {
 }
 
 export class EmailService {
-  private mailjetApiKey: string;
-  private mailjetSecretKey: string;
-  private resendApiKey: string;
-  private brevoApiKey: string;
-  private qstashToken: string;
-
-  constructor() {
-    this.mailjetApiKey = process.env.MAILJET_API_KEY || '';
-    this.mailjetSecretKey = process.env.MAILJET_SECRET_KEY || '';
-    this.resendApiKey = process.env.RESEND_API_KEY || '';
-    this.brevoApiKey = process.env.BREVO_API_KEY || '';
-    this.qstashToken = process.env.QSTASH_TOKEN || '';
-  }
+  private mailjetApiKey = process.env.MAILJET_API_KEY || '';
+  private mailjetSecretKey = process.env.MAILJET_SECRET_KEY || '';
+  private resendApiKey = process.env.RESEND_API_KEY || '';
+  private brevoApiKey = process.env.BREVO_API_KEY || '';
 
   private async sendEmail(emailData: EmailData): Promise<boolean> {
     const mailjetResult = await this.sendEmailViaMailjet(emailData);
@@ -137,112 +128,6 @@ export class EmailService {
       return false;
     } catch (error) {
       console.error('Brevo error:', error);
-      return false;
-    }
-  }
-
-  private async sendEmailViaQStashMailjet(emailData: EmailData): Promise<boolean> {
-    if (!this.qstashToken || !this.mailjetApiKey || !this.mailjetSecretKey) return false;
-
-    try {
-      const basicAuth = Buffer.from(`${this.mailjetApiKey}:${this.mailjetSecretKey}`).toString('base64');
-      
-      const response = await fetch('https://qstash.upstash.io/v2/publish/https://api.mailjet.com/v3.1/send', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${this.qstashToken}`,
-          'Content-Type': 'application/json',
-          'Upstash-Forward-Authorization': `Basic ${basicAuth}`,
-          'Upstash-Forward-Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          Messages: [{
-            From: { Email: "noreply@jerome.co.in", Name: "0xJerry's Lab" },
-            To: [{ Email: emailData.to, Name: emailData.to.split('@')[0] }],
-            Subject: emailData.subject,
-            HTMLPart: emailData.html,
-            TextPart: emailData.text || ''
-          }]
-        })
-      });
-
-      if (response.ok) {
-        console.log('Email queued via QStash+Mailjet');
-        return true;
-      }
-
-      console.error('QStash+Mailjet failed:', await response.text());
-      return false;
-    } catch (error) {
-      console.error('QStash+Mailjet error:', error);
-      return false;
-    }
-  }
-
-  private async sendEmailViaQStashResend(emailData: EmailData): Promise<boolean> {
-    if (!this.qstashToken || !this.resendApiKey) return false;
-
-    try {
-      const response = await fetch('https://qstash.upstash.io/v2/publish/https://api.resend.com/emails', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${this.qstashToken}`,
-          'Content-Type': 'application/json',
-          'Upstash-Forward-Authorization': `Bearer ${this.resendApiKey}`,
-          'Upstash-Forward-Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          from: "0xJerry's Lab <noreply@jerome.co.in>",
-          to: [emailData.to],
-          subject: emailData.subject,
-          html: emailData.html,
-          text: emailData.text
-        })
-      });
-
-      if (response.ok) {
-        console.log('Email queued via QStash+Resend');
-        return true;
-      }
-
-      console.error('QStash+Resend failed:', await response.text());
-      return false;
-    } catch (error) {
-      console.error('QStash+Resend error:', error);
-      return false;
-    }
-  }
-
-  private async sendEmailViaQStashBrevo(emailData: EmailData): Promise<boolean> {
-    if (!this.qstashToken || !this.brevoApiKey) return false;
-
-    try {
-      const response = await fetch('https://qstash.upstash.io/v2/publish/https://api.brevo.com/v3/smtp/email', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${this.qstashToken}`,
-          'Content-Type': 'application/json',
-          'Upstash-Forward-accept': 'application/json',
-          'Upstash-Forward-api-key': this.brevoApiKey,
-          'Upstash-Forward-content-type': 'application/json'
-        },
-        body: JSON.stringify({
-          sender: { name: "0xJerry's Lab", email: "noreply@jerome.co.in" },
-          to: [{ email: emailData.to, name: emailData.to.split('@')[0] }],
-          subject: emailData.subject,
-          htmlContent: emailData.html
-        })
-      });
-
-      if (response.ok) {
-        console.log('Email queued via QStash+Brevo');
-        return true;
-      }
-
-      console.error('QStash+Brevo failed:', await response.text());
-      return false;
-    } catch (error) {
-      console.error('QStash+Brevo error:', error);
       return false;
     }
   }
@@ -377,15 +262,11 @@ export class EmailService {
     try {
       const batch1 = emailsToSend.slice(0, batch1Size);
       const results1 = await Promise.allSettled(
-        batch1.map(async recipient => {
-          const mailjetResult = await this.sendEmailViaQStashMailjet({ to: recipient.email, subject, html });
-          if (mailjetResult) return true;
-          return this.sendEmailViaQStashBrevo({ to: recipient.email, subject, html });
-        })
+        batch1.map(recipient => this.sendEmail({ to: recipient.email, subject, html }))
       );
       const successful1 = results1.filter(r => r.status === 'fulfilled' && (r as PromiseFulfilledResult<boolean>).value).length;
       totalSuccess += successful1;
-      console.log(`Batch 1: ${successful1}/${batch1.length} emails queued`);
+      console.log(`Batch 1: ${successful1}/${batch1.length} emails sent`);
     } catch (error) {
       console.error('Batch 1 error:', error);
     }
@@ -393,15 +274,11 @@ export class EmailService {
     try {
       const batch2 = emailsToSend.slice(batch1Size);
       const results2 = await Promise.allSettled(
-        batch2.map(async recipient => {
-          const resendResult = await this.sendEmailViaQStashResend({ to: recipient.email, subject, html });
-          if (resendResult) return true;
-          return this.sendEmailViaQStashBrevo({ to: recipient.email, subject, html });
-        })
+        batch2.map(recipient => this.sendEmail({ to: recipient.email, subject, html }))
       );
       const successful2 = results2.filter(r => r.status === 'fulfilled' && (r as PromiseFulfilledResult<boolean>).value).length;
       totalSuccess += successful2;
-      console.log(`Batch 2: ${successful2}/${batch2.length} emails queued`);
+      console.log(`Batch 2: ${successful2}/${batch2.length} emails sent`);
     } catch (error) {
       console.error('Batch 2 error:', error);
     }
@@ -538,15 +415,11 @@ export class EmailService {
     try {
       const batch1 = emailsToSend.slice(0, batch1Size);
       const results1 = await Promise.allSettled(
-        batch1.map(async recipient => {
-          const mailjetResult = await this.sendEmailViaQStashMailjet({ to: recipient.email, subject, html });
-          if (mailjetResult) return true;
-          return this.sendEmailViaQStashBrevo({ to: recipient.email, subject, html });
-        })
+        batch1.map(recipient => this.sendEmail({ to: recipient.email, subject, html }))
       );
       const successful1 = results1.filter(r => r.status === 'fulfilled' && (r as PromiseFulfilledResult<boolean>).value).length;
       totalSuccess += successful1;
-      console.log(`Batch 1: ${successful1}/${batch1.length} emails queued`);
+      console.log(`Batch 1: ${successful1}/${batch1.length} emails sent`);
     } catch (error) {
       console.error('Batch 1 error:', error);
     }
@@ -554,15 +427,11 @@ export class EmailService {
     try {
       const batch2 = emailsToSend.slice(batch1Size);
       const results2 = await Promise.allSettled(
-        batch2.map(async recipient => {
-          const resendResult = await this.sendEmailViaQStashResend({ to: recipient.email, subject, html });
-          if (resendResult) return true;
-          return this.sendEmailViaQStashBrevo({ to: recipient.email, subject, html });
-        })
+        batch2.map(recipient => this.sendEmail({ to: recipient.email, subject, html }))
       );
       const successful2 = results2.filter(r => r.status === 'fulfilled' && (r as PromiseFulfilledResult<boolean>).value).length;
       totalSuccess += successful2;
-      console.log(`Batch 2: ${successful2}/${batch2.length} emails queued`);
+      console.log(`Batch 2: ${successful2}/${batch2.length} emails sent`);
     } catch (error) {
       console.error('Batch 2 error:', error);
     }
